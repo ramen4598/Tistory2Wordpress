@@ -102,6 +102,15 @@ function getAxiosErrorMessage(error: unknown): string {
   return (error as Error)?.message ?? String(error);
 }
 
+function encodeHtmlEntity(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export function createWpClient(): WpClient {
   const config = loadConfig();
   const logger = getLogger();
@@ -337,13 +346,15 @@ export function createWpClient(): WpClient {
       let category: WpCategory | undefined;
       do {
         const response = await client.get<WpCategory[]>(`/categories`, {
-          params: { per_page: 100, page, search: name },
+          params: { per_page: 100, page, search: encodeHtmlEntity(name) },
         });
 
         if (!response?.data || response?.data.length === 0) break;
 
         const fetched: WpCategory[] = response.data;
-        const matched = fetched.filter((cat) => cat.name === name);
+        const matched = fetched.filter(
+          (cat) => cat.name === name || cat.name === encodeHtmlEntity(name)
+        );
         if (matched.length > 0) {
           category = matched[0];
           break;
@@ -399,13 +410,13 @@ export function createWpClient(): WpClient {
       let tag: WpTag | undefined;
       do {
         const response = await client.get<WpTag[]>(`/tags`, {
-          params: { per_page: 100, page, search: name },
+          params: { per_page: 100, page, search: encodeHtmlEntity(name) },
         });
 
         if (!response?.data || response?.data.length === 0) break;
 
         const fetched: WpTag[] = response.data;
-        const matched = fetched.filter((tag) => tag.name === name);
+        const matched = fetched.filter((tag) => tag.name === encodeHtmlEntity(name));
         if (matched.length > 0) {
           tag = matched[0];
           break;
